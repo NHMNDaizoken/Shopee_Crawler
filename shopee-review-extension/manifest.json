@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Shopee Review Scraper",
+  "version": "1.0.0",
+  "description": "Extract product reviews from Shopee (1-5 stars, 5 samples each)",
+  "permissions": ["activeTab", "scripting", "downloads", "storage", "tabs", "alarms"],
+  "host_permissions": ["*://*.shopee.vn/*", "*://*.shopee.com/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Shopee Review Scraper"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.shopee.vn/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

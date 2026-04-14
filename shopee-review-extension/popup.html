@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Shopee Review Scraper</title>
+  <style>
+    body {
+      width: 320px;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      margin: 0;
+    }
+    h1 {
+      font-size: 18px;
+      margin: 0 0 16px 0;
+      color: #ee4d2d;
+    }
+    .config {
+      margin-bottom: 12px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 4px;
+      color: #333;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #ee4d2d;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    button:hover {
+      background: #d73211;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .status {
+      margin-top: 12px;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      display: none;
+    }
+    .status.info {
+      background: #e8f4fd;
+      color: #1890ff;
+      display: block;
+    }
+    .status.success {
+      background: #f6ffed;
+      color: #52c41a;
+      display: block;
+    }
+    .status.error {
+      background: #fff1f0;
+      color: #ff4d4f;
+      display: block;
+    }
+    .progress {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #666;
+    }
+    .star-stats {
+      margin-top: 10px;
+      padding: 8px;
+      border: 1px solid #f0f0f0;
+      border-radius: 6px;
+      background: #fafafa;
+      display: none;
+    }
+    .star-stats.visible {
+      display: block;
+    }
+    .star-stats-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 6px;
+    }
+    .star-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
+    }
+    .star-pill {
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid #ffd8bf;
+      color: #d46b08;
+      font-size: 11px;
+      line-height: 1.2;
+      text-align: center;
+      padding: 6px 4px;
+    }
+    .star-pill strong {
+      display: block;
+      font-size: 12px;
+      color: #ad4e00;
+    }
+  </style>
+</head>
+<body>
+  <h1>🛍️ Shopee Review Scraper</h1>
+  
+  <div class="config">
+    <label>Reviews per star:</label>
+    <input type="number" id="reviewsPerStar" value="5" min="1" max="20">
+  </div>
+  
+  <div class="config">
+    <label>Mode:</label>
+    <select id="mode">
+      <option value="current">Current Product Page</option>
+      <option value="batch">Batch from CSV</option>
+    </select>
+  </div>
+
+  <div class="config" id="batchConfig" style="display: none;">
+    <label>CSV file:</label>
+    <input type="file" id="csvFile" accept=".csv">
+    <div style="font-size: 11px; color: #666; margin-top: 4px;">
+      Chọn `data/pdp_detail.csv` hoặc CSV có cột `shopid,itemid,name`
+    </div>
+
+    <div style="display: flex; gap: 8px; margin-top: 10px;">
+      <div style="flex: 1;">
+        <label>Start row:</label>
+        <input type="number" id="batchStartIndex" value="1" min="1">
+      </div>
+      <div style="flex: 1;">
+        <label>Break every:</label>
+        <input type="number" id="batchSize" value="50" min="1">
+      </div>
+    </div>
+    <div style="font-size: 11px; color: #666; margin-top: 4px;">
+      Start row là dòng bắt đầu. Break every là số sản phẩm chạy liên tục trước khi nghỉ/lướt trang chủ rồi tự chạy tiếp.
+    </div>
+  </div>
+  
+  <button id="startBtn">▶️ Start Scraping</button>
+  <button id="stopBtn" style="display: none; background: #ff4d4f;">⏹ Stop</button>
+  <button id="downloadBtn" style="display: none; background: #52c41a;">📥 Download CSV</button>
+  
+  <div class="status" id="status"></div>
+  <div class="progress" id="progress"></div>
+  <div class="star-stats" id="starStats">
+    <div class="star-stats-title" id="starStatsTitle">Số review đã lấy</div>
+    <div class="star-stats-grid">
+      <div class="star-pill"><strong id="starCount1">0</strong>1★</div>
+      <div class="star-pill"><strong id="starCount2">0</strong>2★</div>
+      <div class="star-pill"><strong id="starCount3">0</strong>3★</div>
+      <div class="star-pill"><strong id="starCount4">0</strong>4★</div>
+      <div class="star-pill"><strong id="starCount5">0</strong>5★</div>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

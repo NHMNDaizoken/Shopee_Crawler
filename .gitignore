@@ -1,0 +1,43 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Node
+node_modules/
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+log/
+
+# Chrome profile (runtime artifact, too large for git)
+shopee_profile_chrome/
+
+# Pipeline output data
+data/*.csv
+data/review/
+output/
+
+# Extension archive (already have the source folder)
+shopee-review-extension.rar
+
+# Merged / downloaded review CSVs
+merged_reviews.csv
+shopee_reviews_*.csv
+
+# Claude
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
