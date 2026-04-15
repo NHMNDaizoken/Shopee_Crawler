@@ -69,7 +69,7 @@ def main():
 
     logger.info(f"📋 Bắt đầu xử lý {len(shop_usernames)} shop từ file shops.txt.")
 
-    # --- BƯỚC 2: CÀO THÔNG TIN CHI TIẾT SHOP (Lấy ShopID) ---
+    # --- BƯỚC 1: CÀO THÔNG TIN CHI TIẾT SHOP (Lấy ShopID) ---
     logger.info("Step 1: Fetching SHOP DETAILS...")
     shop_crawler = ShopDetailCrawler()
     df_shops = shop_crawler(shop_usernames)
@@ -78,7 +78,13 @@ def main():
         logger.error("❌ Không lấy được thông tin shop nào. Dừng chương trình.")
         return
 
-    # --- BƯỚC 3: CÀO CHI TIẾT SẢN PHẨM ---
+    logger.info(
+        "🎯 Giữ lại %s shop mục tiêu: %s",
+        len(df_shops),
+        ", ".join(df_shops["name"].astype(str).tolist()),
+    )
+
+    # --- BƯỚC 2: CÀO CHI TIẾT SẢN PHẨM ---
     logger.info("Step 2: Start fetching PRODUCTS from shops...")
     product_crawler = ProductDetailCrawler()
     df_products = product_crawler(df_shops)
@@ -87,12 +93,12 @@ def main():
         logger.warning("⚠️ Không có sản phẩm nào được cào. Dừng chương trình.")
         return
 
-    # --- BƯỚC 4: LẤY CHI TIẾT MỨC SAO ---
+    # --- BƯỚC 3: LẤY CHI TIẾT MỨC SAO ---
     logger.info("Step 3: Start fetching STAR RATINGS + REVIEW SAMPLES for each product...")
     review_crawler = ReviewCrawler()
     review_crawler(df_products)
 
-    # --- BƯỚC 5: TỔNG KẾT ---
+    # --- BƯỚC 4: TỔNG KẾT ---
     logger.info("=" * 50)
     logger.info("🎉 HOÀN THÀNH TOÀN BỘ QUY TRÌNH!")
     logger.info(f"📂 Star distribution được cập nhật tại: {runtime.paths.product_detail_file}")

@@ -22,10 +22,12 @@ log/
 
 # Chrome profile (runtime artifact, too large for git)
 shopee_profile_chrome/
+utils/
 
 # Pipeline output data
 data/*.csv
 data/review/
+data/
 output/
 
 # Extension archive (already have the source folder)
