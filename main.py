@@ -4,7 +4,6 @@ from crawlers.shop_finder import ShopFinder
 from crawlers.product_shop_finder import ProductShopFinder
 from crawlers.shop_crawler import ShopDetailCrawler
 from crawlers.product_crawler import ProductDetailCrawler
-from crawlers.review_crawler import ReviewCrawler
 from utils.runtime import runtime
 
 logging.basicConfig(
@@ -23,7 +22,7 @@ def main():
     input_file = runtime.paths.shops_file
 
     logger.info(
-        "Runtime config | shops=%s auto_find=%s discovery_mode=%s shop_limit=%s keywords=%s chrome_port=%s profile=%s product_limit=%s review_itemids=%s review_start=%s per_star=%s",
+        "Runtime config | shops=%s auto_find=%s discovery_mode=%s shop_limit=%s keywords=%s chrome_port=%s profile=%s product_limit=%s",
         input_file,
         runtime.auto_find_shops,
         runtime.shop_discovery_mode,
@@ -32,9 +31,6 @@ def main():
         runtime.chrome_port,
         runtime.paths.profile_dir,
         runtime.product_limit,
-        sorted(runtime.review_itemids) if runtime.review_itemids else [],
-        runtime.review_start_index,
-        runtime.reviews_per_star_sample,
     )
 
     if runtime.auto_find_shops:
@@ -93,16 +89,12 @@ def main():
         logger.warning("⚠️ Không có sản phẩm nào được cào. Dừng chương trình.")
         return
 
-    # --- BƯỚC 3: LẤY CHI TIẾT MỨC SAO ---
-    logger.info("Step 3: Start fetching STAR RATINGS + REVIEW SAMPLES for each product...")
-    review_crawler = ReviewCrawler()
-    review_crawler(df_products)
-
-    # --- BƯỚC 4: TỔNG KẾT ---
+    # --- BƯỚC 3: TỔNG KẾT ---
     logger.info("=" * 50)
-    logger.info("🎉 HOÀN THÀNH TOÀN BỘ QUY TRÌNH!")
-    logger.info(f"📂 Star distribution được cập nhật tại: {runtime.paths.product_detail_file}")
-    logger.info(f"📂 Review samples được lưu tại: {runtime.paths.review_samples_file}")
+    logger.info("🎉 HOÀN THÀNH PYTHON PIPELINE!")
+    logger.info(f"📂 Shop detail được lưu tại: {runtime.paths.shop_detail_file}")
+    logger.info(f"📂 Product detail được lưu tại: {runtime.paths.product_detail_file}")
+    logger.info("➡️ Bước review được tách riêng qua Chrome extension.")
     logger.info("=" * 50)
 
 

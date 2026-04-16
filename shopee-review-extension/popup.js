@@ -518,7 +518,7 @@ function scrapeReviews(reviewsPerStar) {
         return;
       }
 
-      for (let star = 1; star <= 5; star += 1) {
+      for (const star of [5, 1, 2, 3, 4]) {
         let collected = 0;
         let offset = 0;
 

@@ -1,6 +1,6 @@
 # Shopee Crawler
 
-Thu thập dữ liệu shop, sản phẩm và đánh giá từ Shopee.vn.
+Thu thập dữ liệu shop và sản phẩm từ Shopee.vn, sau đó crawl review bằng Chrome Extension riêng.
 
 ---
 
@@ -49,7 +49,7 @@ Thu thập dữ liệu shop, sản phẩm và đánh giá từ Shopee.vn.
                    │
                    ▼
  ╔═══════════════════════════════════════════════════════════════════════╗
- ║  PHASE 2 — Chrome Extension (bán tự động)                           ║
+ ║  PHASE 2 — Chrome Extension (riêng)                                 ║
  ╚═══════════════════════════════════════════════════════════════════════╝
 
     ┌──────────────────────────────────────────────────┐
@@ -69,7 +69,7 @@ Thu thập dữ liệu shop, sản phẩm và đánh giá từ Shopee.vn.
                    │
                    ▼
  ╔═══════════════════════════════════════════════════════════════════════╗
- ║  PHASE 3 — Merge Reviews (tự động)                                  ║
+ ║  PHASE 3 — Merge Reviews (tuỳ chọn)                                 ║
  ╚═══════════════════════════════════════════════════════════════════════╝
 
     ┌──────────────────────────────────────────────────┐
@@ -123,6 +123,8 @@ Pipeline tự động chạy 2 bước:
 1. **Crawl shop** → `data/shop_detail.csv`
 2. **Crawl sản phẩm** → `data/pdp_detail.csv`
 
+`python main.py` dừng ở đây. Phần review không còn nằm trong pipeline Python.
+
 > Chrome sẽ tự mở. Đăng nhập Shopee nếu chưa đăng nhập. Giải CAPTCHA thủ công khi được yêu cầu.
 
 ### Phase 2 — Crawl Review bằng Extension
@@ -153,11 +155,6 @@ python merge_reviews.py --input-dir . --output data/all_reviews_merged.csv
 | `SHOPEE_SHOP_DISCOVERY_MODE` | `users` | `users` hoặc `products` |
 | `SHOPEE_KEYWORDS` | _(trống)_ | Keyword tìm shop, cách bởi `\|` |
 | `SHOPEE_PRODUCT_LIMIT` | _(trống)_ | Giới hạn số sản phẩm crawl |
-| `SHOPEE_REVIEWS_PER_STAR` | `5` | Số review mẫu mỗi mức sao |
-| `SHOPEE_REVIEW_ONLY_PENDING` | `1` | Chỉ crawl sản phẩm chưa có review |
-| `SHOPEE_REVIEW_SKIP_SAMPLED` | `1` | Bỏ qua sản phẩm đã lấy đủ mẫu |
-| `SHOPEE_REVIEW_ITEMIDS` | _(trống)_ | Chỉ crawl các itemid cụ thể (phẩy cách) |
-| `SHOPEE_REVIEW_START_INDEX` | `0` | Bắt đầu từ sản phẩm thứ N |
 
 ---
 
@@ -166,7 +163,7 @@ python merge_reviews.py --input-dir . --output data/all_reviews_merged.csv
 | File | Nội dung | Cột chính |
 |------|----------|-----------|
 | `data/shop_detail.csv` | Thông tin shop | `shopid`, `name`, `follower_count`, `rating_star` |
-| `data/pdp_detail.csv` | Chi tiết sản phẩm + phân bổ sao | `shopid`, `itemid`, `name`, `price` |
+| `data/pdp_detail.csv` | Chi tiết sản phẩm | `shopid`, `itemid`, `name`, `price` |
 | `data/all_reviews_merged.csv` | Tất cả review đã gộp | `rating_id`, `rating_star`, `comment` |
 
 ---
@@ -186,7 +183,7 @@ python merge_reviews.py --input-dir . --output data/all_reviews_merged.csv
 │   ├── product_crawler.py      # Step 2: Crawl sản phẩm (browser)
 │   ├── shop_finder.py          # Auto-find shop qua tìm user
 │   ├── product_shop_finder.py  # Auto-find shop qua tìm sản phẩm
-│   ├── review_crawler.py       # Crawl review (fallback cho extension)
+│   ├── review_crawler.py       # Crawler review riêng, không nằm trong main flow
 │   └── csv_store.py            # Tiện ích đọc/ghi CSV
 │
 ├── utils/
@@ -215,14 +212,14 @@ python merge_reviews.py --input-dir . --output data/all_reviews_merged.csv
 | **CAPTCHA xuất hiện** | Giải thủ công trong Chrome, nhấn Enter để tiếp tục |
 | **Chuyển hướng trang login** | Đăng nhập Shopee, đợi 1-2 phút, chạy lại |
 | **API error 90309999** | Session hết hạn → refresh Shopee, đăng nhập lại |
-| **Gián đoạn giữa chừng** | Chạy lại `python main.py` — tự bỏ qua dữ liệu đã crawl |
+| **Gián đoạn giữa chừng** | Chạy lại `python main.py` — tự bỏ qua dữ liệu shop/sản phẩm đã crawl |
 | **Extension bị chặn** | Giải CAPTCHA, refresh trang, đặt lại Start row rồi chạy tiếp |
 
 ---
 
 ## Ghi chú
 
-- Pipeline hỗ trợ **resume**: chạy lại sẽ tự bỏ qua dữ liệu đã có
+- Pipeline Python hỗ trợ **resume**: chạy lại sẽ tự bỏ qua dữ liệu shop/sản phẩm đã có
 - Dữ liệu được lưu **sau mỗi shop/sản phẩm**, nên gián đoạn không mất dữ liệu
 - Extension chạy trong **session thật** của trình duyệt nên ít bị chặn hơn Python
 - `merge_reviews.py` luôn **loại trùng** theo `rating_id`, gộp lại bao nhiêu lần cũng an toàn
