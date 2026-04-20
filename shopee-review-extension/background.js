@@ -739,54 +739,153 @@ function scrapeReviews(reviewsPerStar) {
       }
 
       let totalReviewCount = Number.isInteger(domReviewCount) ? domReviewCount : null;
-      for (const star of [5, 1, 2, 3, 4]) {
-        let collected = 0;
-        let offset = 0;
 
-        while (collected < reviewsPerStar) {
+      // FIX: Shopee API trả review lệch khi filter=N (rating.rating_star
+      // không khớp với N). Cách cũ tag CSV bằng biến loop `star` nên ghi sai.
+      // Giờ fetch filter=0 (all) rồi bucket theo rating.rating_star THẰT.
+      const collectedPerStar = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
+      const sampleIndexPerStar = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
+      let ratingCountByStar = null; // [total, c1, c2, c3, c4, c5] từ item_rating_summary
+      let offset = 0;
+      let consecutiveEmpty = 0;
+      const MAX_EMPTY = 3;
+      const MAX_OFFSET = 5000;
+      const allFull = () => [1, 2, 3, 4, 5].every((s) => collectedPerStar[s] >= reviewsPerStar);
+
+      while (!allFull() && offset < MAX_OFFSET) {
+        try {
+          const params = new URLSearchParams({
+            itemid: itemId,
+            shopid: shopId,
+            filter: "0",
+            limit: "20",
+            offset: String(offset),
+            type: "0",
+          });
+
+          const response = await fetchUtils.get(`/api/v2/item/get_ratings?${params}`);
+          if (response.error !== 0 || !response.data) {
+            break;
+          }
+
+          const currentTotalReviewCount = extractTotalReviewCount(response.data);
+          if (Number.isInteger(currentTotalReviewCount)) {
+            totalReviewCount = currentTotalReviewCount;
+          }
+          // Capture rating_count array để skip star=0 ở Phase B
+          const rcArr = response.data?.item_rating_summary?.rating_count;
+          if (Array.isArray(rcArr) && rcArr.length >= 6) {
+            ratingCountByStar = rcArr;
+          }
+
+          const ratings = response.data.ratings || [];
+          if (ratings.length === 0) {
+            consecutiveEmpty += 1;
+            if (consecutiveEmpty >= MAX_EMPTY) break;
+            offset += 20;
+            await sleep(800);
+            continue;
+          }
+          consecutiveEmpty = 0;
+
+          for (const rating of ratings) {
+            const actualStar = Number(rating.rating_star);
+            if (!(actualStar >= 1 && actualStar <= 5)) continue;
+            if (collectedPerStar[actualStar] >= reviewsPerStar) continue;
+
+            const ratingId = String(rating.rating_id || rating.ratingsid || rating.cmtid || "");
+            if (!ratingId || seenIds.has(ratingId)) continue;
+
+            const comment = (rating.comment || "").trim();
+            if (!comment) continue;
+
+            seenIds.add(ratingId);
+            collectedPerStar[actualStar] += 1;
+            sampleIndexPerStar[actualStar] += 1;
+            starBreakdown[actualStar] += 1;
+
+            const productItems = (rating.product_items || [])
+              .map((item) => item.model_name || "")
+              .filter(Boolean)
+              .join(", ");
+            const ctime = rating.ctime || 0;
+            const tCtime = ctime ? new Date(ctime * 1000).toISOString().replace("T", " ").substring(0, 19) : "";
+
+            reviews.push({
+              code,
+              itemid: itemId,
+              shopid: shopId,
+              rating_star: actualStar,
+              sample_index: sampleIndexPerStar[actualStar],
+              rating_id: ratingId,
+              author_username: rating.author_username || "",
+              like_count: rating.like_count || 0,
+              ctime,
+              t_ctime: tCtime,
+              comment,
+              product_items: productItems,
+              insert_date: new Date().toISOString().replace("T", " ").substring(0, 19),
+            });
+          }
+
+          offset += ratings.length;
+          await sleep(300);
+        } catch (error) {
+          break;
+        }
+      }
+
+      // PHASE B: các star vẫn thiếu → fetch riêng từng star với filter=N.
+      // Vẫn validate actualStar để tránh mismatch.
+      for (const star of [1, 2, 3, 4, 5]) {
+        if (collectedPerStar[star] >= reviewsPerStar) continue;
+        // Skip star = 0 review (theo summary)
+        if (ratingCountByStar && Number(ratingCountByStar[star] || 0) === 0) continue;
+
+        let starOffset = 0;
+        let starEmpty = 0;
+        const STAR_MAX_OFFSET = 1500;
+        const STAR_MAX_EMPTY = 5;
+
+        while (collectedPerStar[star] < reviewsPerStar && starOffset < STAR_MAX_OFFSET) {
           try {
             const params = new URLSearchParams({
               itemid: itemId,
               shopid: shopId,
               filter: String(star),
               limit: "20",
-              offset: String(offset),
+              offset: String(starOffset),
               type: "0",
             });
 
             const response = await fetchUtils.get(`/api/v2/item/get_ratings?${params}`);
-            if (response.error !== 0 || !response.data) {
-              break;
-            }
-
-            const currentTotalReviewCount = extractTotalReviewCount(response.data);
-            if (Number.isInteger(currentTotalReviewCount)) {
-              totalReviewCount = currentTotalReviewCount;
-            }
+            if (response.error !== 0 || !response.data) break;
 
             const ratings = response.data.ratings || [];
             if (ratings.length === 0) {
-              break;
+              starEmpty += 1;
+              if (starEmpty >= STAR_MAX_EMPTY) break;
+              starOffset += 20;
+              await sleep(800);
+              continue;
             }
+            starEmpty = 0;
 
             for (const rating of ratings) {
-              if (collected >= reviewsPerStar) {
-                break;
-              }
+              const actualStar = Number(rating.rating_star);
+              if (actualStar !== star) continue;
+              if (collectedPerStar[star] >= reviewsPerStar) break;
 
               const ratingId = String(rating.rating_id || rating.ratingsid || rating.cmtid || "");
-              if (!ratingId || seenIds.has(ratingId)) {
-                continue;
-              }
+              if (!ratingId || seenIds.has(ratingId)) continue;
 
               const comment = (rating.comment || "").trim();
-              if (!comment) {
-                continue;
-              }
+              if (!comment) continue;
 
-               seenIds.add(ratingId);
-               collected += 1;
-               starBreakdown[star] += 1;
+              seenIds.add(ratingId);
+              collectedPerStar[star] += 1;
+              sampleIndexPerStar[star] += 1;
+              starBreakdown[star] += 1;
 
               const productItems = (rating.product_items || [])
                 .map((item) => item.model_name || "")
@@ -800,7 +899,7 @@ function scrapeReviews(reviewsPerStar) {
                 itemid: itemId,
                 shopid: shopId,
                 rating_star: star,
-                sample_index: collected,
+                sample_index: sampleIndexPerStar[star],
                 rating_id: ratingId,
                 author_username: rating.author_username || "",
                 like_count: rating.like_count || 0,
@@ -812,14 +911,12 @@ function scrapeReviews(reviewsPerStar) {
               });
             }
 
-            offset += ratings.length;
+            starOffset += ratings.length;
             await sleep(300);
           } catch (error) {
             break;
           }
         }
-
-        await sleep(600);
       }
 
       if (reviews.length > 0) {
